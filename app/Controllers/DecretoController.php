@@ -13,6 +13,7 @@ use CodeIgniter\RESTful\ResourcePresenter;
 class DecretoController extends ResourcePresenter
 {
     protected $modelName = DecretoModel::class;
+    protected $helpers   = ['form'];
 
     /**
      * Present a view of resource objects.
@@ -22,7 +23,9 @@ class DecretoController extends ResourcePresenter
     public function index()
     {
         if ($this->request->isAJAX()) {
-            return $this->response->setJSON($this->model->findAll());
+            $decretos = $this->model->findAll();
+
+            return $this->response->setJSON($decretos);
         }
 
         return view('decreto/index', [
@@ -37,14 +40,27 @@ class DecretoController extends ResourcePresenter
      *
      * @return ResponseInterface
      */
-    public function show($id = null) {}
+    public function show($id = null)
+    {
+        $decreto = $this->model->findOrNotFound($id);
+
+        return view('decreto/show', [
+            'title'   => 'Detalhes do decreto',
+            'decreto' => $decreto,
+        ]);
+    }
 
     /**
      * Present a view to present a new single resource object.
      *
      * @return ResponseInterface
      */
-    public function new() {}
+    public function new()
+    {
+        return view('decreto/new', [
+            'title' => 'Cadastro de decreto',
+        ]);
+    }
 
     /**
      * Process the creation/insertion of a new resource object.
@@ -54,7 +70,30 @@ class DecretoController extends ResourcePresenter
      */
     public function create()
     {
-        $decreto = new DecretoEntity($this->request->getPost());
+        $decreto   = new DecretoEntity($this->request->getPost());
+        $documento = $this->request->getFile('document');
+
+        if ($documento) {
+            if (! $documento->hasMoved() && $documento->isValid()) {
+                // $documento->store('decretos');
+                // $decreto->document = $documento->getName();
+
+                $decretoPath = 'uploads/decretos';
+
+                if (! $decretoPath) {
+                    mkdir($decretoPath);
+                }
+
+                // if (! file_exists('uploads/decretos')) {
+                //     mkdir('uploads/decretos');
+                // }
+
+                $newName = $documento->getRandomName();
+                $documento->move(FCPATH . $decretoPath, $newName);
+                // $documento->move(FCPATH . 'uploads/decretos', $newName);
+                $decreto->document = $newName;
+            }
+        }
 
         if (! $this->model->save($decreto)) {
             return redirect()->back()->withInput()
@@ -96,6 +135,12 @@ class DecretoController extends ResourcePresenter
     {
         $decreto = $this->model->findOrNotFound($id);
         $decreto->fill($this->request->getPost());
+
+        $documento = $this->request->getFile('documento');
+
+        if ($documento) {
+            $decreto->document = $documento;
+        }
 
         if ($decreto->hasChanged()) {
             if (! $this->model->save($decreto)) {
@@ -145,5 +190,15 @@ class DecretoController extends ResourcePresenter
         return redirect(self::class)
             ->with('message', 'Decreto excluído!')
             ->with('color', 'success');
+    }
+
+    public function list()
+    {
+        $decretos       = $this->model->orderBy('date', 'desc')->findAll();
+
+
+        return view('decreto/list', [
+            'decretos' => $decretos,
+        ]);
     }
 }

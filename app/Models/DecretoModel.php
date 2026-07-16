@@ -44,12 +44,19 @@ class DecretoModel extends Model
     protected $beforeDelete   = [];
     protected $afterDelete    = [];
 
-    public function findOrNotFound(int $id): DecretoEntity
+    public function findOrNotFound(int|string $id): DecretoEntity
     {
         if ($decreto = $this->find($id)) {
             return $decreto;
         }
 
         throw PageNotFoundException::forPageNotFound();
+    }
+
+    public function getDecretosProd(): array
+    {
+        $db       = db_connect('arqaparecida');
+        $table    = $db->table('arq_decreto');
+        return $table->get()->getResult();
     }
 }
