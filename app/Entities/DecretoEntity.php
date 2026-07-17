@@ -43,4 +43,5 @@ class DecretoEntity extends Entity
 
         return parent::toArray($onlyChanged, $cast, $recursive);
     }
+
 }
